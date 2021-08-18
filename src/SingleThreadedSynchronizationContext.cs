@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AsyncThreading
 {
@@ -42,13 +43,20 @@ namespace AsyncThreading
     {
         readonly WorkItemQueue _workItemsQueue = new ();
 
-        public void Run()
+        public void Run(CancellationToken cancellationToken)
         {
+            cancellationToken.Register(() => _workItemsQueue.Cancel());
             SynchronizationContext.SetSynchronizationContext(this);
-            while(true)
+            while(!cancellationToken.IsCancellationRequested)
             {
-                (var callback, var state) = _workItemsQueue.Dequeue();
-                callback(state);
+                try
+                {
+                    (var callback, var state) = _workItemsQueue.Dequeue();
+                    callback(state);
+                }
+                catch(OperationCanceledException)
+                {
+                }
             }
         }
 

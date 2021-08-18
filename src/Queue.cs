@@ -48,6 +48,18 @@ namespace AsyncThreading
             _workItemAvailable.Set();
         }
 
+        enum State
+        {
+            NotCancelled,
+            Cancelled
+        }
+        int _state = (int)State.NotCancelled;
+
+        public void Cancel()
+        {
+            Interlocked.Exchange(ref _state, (int)State.Cancelled);
+            _workItemAvailable.Set();
+        }
 
         public (SendOrPostCallback, object) Dequeue()
         {
@@ -59,6 +71,10 @@ namespace AsyncThreading
                 if(_dequeueIndex == _enqueueIndex)
                 {
                     _workItemAvailable.WaitOne();
+                    if(_state == (int)State.Cancelled)
+                    {
+                        throw new OperationCanceledException();
+                    }
                 }
             }
 

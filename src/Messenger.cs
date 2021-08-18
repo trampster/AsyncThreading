@@ -19,52 +19,124 @@ namespace AsyncThreading
         void Unsubscribe(object subscriber);
     }
 
+    public class Subscription<TMessage> 
+    {
+        SynchronizationContext _context;
+        ISubscriber<TMessage> _subscriber;
+        bool _subscribed = false;
+
+        public bool TrySubscribe(SynchronizationContext context, ISubscriber<TMessage> subscriber)
+        {
+            lock(this)
+            {
+                if(_subscribed)
+                {
+                    return false;
+                }
+                _context = context;
+                _subscriber = subscriber;
+                _subscribed = true;
+                return true;
+            }
+        }
+
+        public bool TryGet(out SynchronizationContext context, out ISubscriber<TMessage> subscriber)
+        {
+            lock(this)
+            {
+                context = _context;
+                subscriber = _subscriber;
+                return _subscribed;
+            }
+        }
+
+        public bool TryUnsubscribe(ISubscriber<TMessage> subscriber)
+        {
+            lock(this)
+            {
+                if(subscriber != _subscriber)
+                {
+                    return false;
+                }
+                _context = null;
+                _subscriber = null;
+                _subscribed = false;
+                return true;
+            }
+        }
+    }
+
     public class Subscriptions<TMessage> : ISubscriptions
     {
-        readonly List<(SynchronizationContext, ISubscriber<TMessage>)?> _subscribers = new ();
+        Subscription<TMessage>[] _subscribers = new Subscription<TMessage>[4];
+        int _subscribeIndex = 0;
+
+        public Subscriptions()
+        {
+            for(int index = 0; index < _subscribers.Length; index++)
+            {
+                _subscribers[index] = new Subscription<TMessage>();
+            }
+        }
 
         public void Publish(object message)
         {
-            lock(_subscribers)
+            var typedMessage = (TMessage)message;
+            for(int index = _subscribers.Length - 1; index >= 0; index--)
             {
-                var typedMessage = (TMessage)message;
-                for(int index = _subscribers.Count -1; index >= 0; index--)
+                var subscription = _subscribers[index];
+                if(!subscription.TryGet(out var context, out var subscriber))
                 {
-                    var pair = _subscribers[index];
-                    if(!pair.HasValue)
-                    {
-                        _subscribers.RemoveAt(index);
-                        continue;
-                    }
-                    (var context, var subscriber) = pair.Value;
-                    
-                    context.Post(_ => subscriber.OnMessageReceived(typedMessage), null);
+                    continue;
                 }
+                
+                context.Post(_ => subscriber.OnMessageReceived(typedMessage), null);
             }
         }
 
         public void Subscribe(SynchronizationContext context, object subscriber)
         {
+            var subscribers = _subscribers;
+            for(int index = _subscribeIndex; index < subscribers.Length; index++)
+            {
+                int subIndex = index % subscribers.Length;
+                var subscription = subscribers[subIndex];
+                if(subscription.TrySubscribe(context, (ISubscriber<TMessage>)subscriber))
+                {
+                    return;
+                }
+            }
+            //we did a full loop, there is no space, we need to expand.
             lock(_subscribers)
             {
-                _subscribers.Add((context, (ISubscriber<TMessage>)subscriber));
+                if(_subscribers.Length != subscribers.Length)
+                {
+                    //anther thread got there first
+                    Subscribe(context, subscriber);
+                }
+                var newArray = new Subscription<TMessage>[_subscribers.Length * 2];
+                for(int index = 0; index < _subscribers.Length; index++)
+                {
+                    newArray[index] = _subscribers[index];
+                }
+                for(int index = _subscribers.Length; index < newArray.Length; index++)
+                {
+                    newArray[index] = new Subscription<TMessage>();
+
+                }
+                Interlocked.Exchange(ref _subscribers, newArray);
+                Subscribe(context, subscriber);
             }
         }
 
         public void Unsubscribe(object subscriber)
         {
-            lock(_subscribers)
+            for(int index = 0; index < _subscribers.Length; index++)
             {
-                for(int index = 0; index < _subscribers.Count; index++)
+                var candidateSubscriber = _subscribers[index];
+                if(candidateSubscriber.TryUnsubscribe((ISubscriber<TMessage>)subscriber))
                 {
-                    var pair = _subscribers[index];
-                    if(!pair.HasValue) continue;
-                    (var context, var subscriberFromList) = pair.Value;
-                    if(subscriber == subscriberFromList)
-                    {
-                        _subscribers[index] = null; //don't call remove because that could break the iteration if we are publishing
-                        return;
-                    }
+                    return;
                 }
             }
         }
