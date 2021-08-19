@@ -34,14 +34,14 @@ namespace AsyncThreading
             }, null);
         }
 
-        public Task RunInThreadAsync(Action action)
+        public Task RunInThreadAsync(Func<Task> action)
         {
             var taskCompletionSource = new TaskCompletionSource();
-            _context.Post(_ => 
+            _context.Post(async _ => 
             {
                 try
                 {
-                    action();
+                    await action();
                     taskCompletionSource.SetResult();
                 }
                 catch(Exception exception)

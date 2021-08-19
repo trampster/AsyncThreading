@@ -41,7 +41,11 @@ namespace AsyncThreading.Tests
             bool wasRun = false;
 
             // act
-            await _asyncThread.RunInThreadAsync(() => wasRun = true);
+            await _asyncThread.RunInThreadAsync(() => 
+            {
+                wasRun = true;
+                return Task.CompletedTask;
+            });
 
             // assert
             Assert.That(wasRun);
@@ -75,6 +79,27 @@ namespace AsyncThreading.Tests
                 capturedException = exception;
             }
             Assert.That(capturedException.Message, Is.EqualTo("failed"));
+        }
+
+        [Test]
+        public async Task RunInThread_Await_ScheduledInSameThread()
+        {
+            // arrange
+            int? beforeAwaitId = null;
+            int? afterAwaitId = null;
+
+            // act
+            await _asyncThread.RunInThreadAsync(async () => 
+            {
+                beforeAwaitId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                await Task.Delay(20);
+                afterAwaitId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+            });
+
+            // assert
+            Assert.That(beforeAwaitId.HasValue, Is.True);
+            Assert.That(afterAwaitId.HasValue, Is.True);
+            Assert.That(beforeAwaitId.Value, Is.EqualTo(afterAwaitId.Value));
         }
     }
 }
