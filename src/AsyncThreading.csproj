@@ -17,6 +17,7 @@
     </Description>
     <PackageTags>Async;Await;Thread;Messenger</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/trampster/AsyncThreading</PackageProjectUrl>
   </PropertyGroup>
 
 </Project>
