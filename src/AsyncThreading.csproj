@@ -5,16 +5,16 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>0.1.0.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <PackageVersion>0.1.0.0</PackageVersion>
+    <Version>0.1.0.1</Version>
+    <AssemblyVersion>0.1.0.1</AssemblyVersion>
+    <PackageVersion>0.1.0.1</PackageVersion>
     <Authors>Daniel Hughes</Authors>
     <Copyright>Copyright © Daniel Hughes 2021</Copyright>
+    <Summary>AsyncThreading provides an AsyncThread with a syncronization context.</Summary>
     <Description>
-      This package provides an AsyncThread with a syncronization context. Work can be queued onto the AsyncThread and the result awaited.
-      AsyncThreads can communicate with each other or any thread with a syncronization context using a Messenger, mesages are automatically
-      handled on the subscribers thread.
+      AsyncThreading provides an AsyncThread with a syncronization context. Work can be queued onto the AsyncThread and the result awaited. AsyncThreads can communicate with each other or any thread with a syncronization context using a Messenger, mesages are automatically handled on the subscribers thread.
     </Description>
+    <Title>AsyncThreading</Title>
     <PackageTags>Async;Await;Thread;Messenger</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/trampster/AsyncThreading</PackageProjectUrl>
