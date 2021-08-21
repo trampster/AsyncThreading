@@ -38,7 +38,7 @@ namespace AsyncThreading
                 {
                     break;
                 }
-                await Task.Delay(100).ConfigureAwait(false); // the queue is full, this resceduals to a thread pool cooldown period
+                await Task.Delay(100).ConfigureAwait(false); // the queue is full, this resceduals to a thread pool for a cooldown period
             }
             uint index = Interlocked.Increment(ref _enqueueIndex);
             var item = _items[index % _items.Length];
