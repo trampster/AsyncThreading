@@ -41,7 +41,12 @@ namespace AsyncThreading
 
     public class SingleThreadedSynchronizationContext : SynchronizationContext
     {
-        readonly WorkItemQueue _workItemsQueue = new ();
+        readonly WorkItemQueue _workItemsQueue;
+
+        public SingleThreadedSynchronizationContext(int queueSize)
+        {
+            _workItemsQueue = new WorkItemQueue(queueSize);
+        }
 
         public void Run(CancellationToken cancellationToken)
         {

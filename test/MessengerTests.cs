@@ -24,7 +24,7 @@ namespace AsyncThreading.Tests
         {
             // arrage
             var messenger = new Messenger();
-            AsyncThread asyncThread = new AsyncThread();
+            AsyncThread asyncThread = new AsyncThread(32);
 
             var cancellationTokenSource = new System.Threading.CancellationTokenSource();
             var threadTask = asyncThread.Start(cancellationTokenSource.Token);

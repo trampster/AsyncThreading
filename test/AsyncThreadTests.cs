@@ -14,7 +14,7 @@ namespace AsyncThreading.Tests
         [SetUp]
         public void Setup()
         {
-            _asyncThread = new AsyncThread();
+            _asyncThread = new AsyncThread(32);
             _cancellationSource = new CancellationTokenSource();
             _threadTask = _asyncThread.Start(_cancellationSource.Token);
         }
@@ -100,6 +100,31 @@ namespace AsyncThreading.Tests
             Assert.That(beforeAwaitId.HasValue, Is.True);
             Assert.That(afterAwaitId.HasValue, Is.True);
             Assert.That(beforeAwaitId.Value, Is.EqualTo(afterAwaitId.Value));
+        }
+
+        [Test]
+        public async Task StartInCurrentThread_RunInThreadAsync_IsRun()
+        {
+            // arrange
+            bool wasRun = false;
+            var asyncThread = new AsyncThread(32);
+
+            CancellationTokenSource cancellationTokenSource = new();
+            var thread = new Thread(_ => asyncThread.StartInCurrentThread(cancellationTokenSource.Token));
+            thread.Start();
+
+            // act
+            await asyncThread.RunInThreadAsync(() => 
+            {
+                wasRun = true;
+                return Task.CompletedTask;
+            });
+
+            // assert
+            Assert.That(wasRun);
+
+            cancellationTokenSource.Cancel();
+            thread.Join();
         }
     }
 }

@@ -7,14 +7,15 @@ namespace AsyncThreading
 {
     public class WorkItemQueue
     {
-        readonly WorkItem[] _items = new WorkItem[32];
+        readonly WorkItem[] _items;
         ManualResetEvent _workItemAvailable = new ManualResetEvent(false);
 
         uint _enqueueIndex = 0; // index of last added item
         uint _dequeueIndex = 0; // index before the next item to be dequeued (increment first)
 
-        public WorkItemQueue()
+        public WorkItemQueue(int queueSize)
         {
+            _items = new WorkItem[32];
             for(int index = 0; index < _items.Length; index++)
             {
                 _items[index] = new WorkItem();
