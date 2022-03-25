@@ -109,6 +109,7 @@ namespace AsyncThreading
             while(!item.Ready)
             {
                 //spin until ready
+                System.Threading.Thread.Yield();
             }
             var callback = item.Callback;
             var state = item.State;
