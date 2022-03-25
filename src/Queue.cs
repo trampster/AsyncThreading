@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AsyncThreading
 {
     public class WorkItemQueue
     {
-        readonly WorkItem[] _items;
+        readonly List<WorkItem> _items;
         ManualResetEvent _workItemAvailable = new ManualResetEvent(false);
 
         uint _enqueueIndex = 0; // index of last added item
@@ -15,39 +14,65 @@ namespace AsyncThreading
 
         public WorkItemQueue(int queueSize)
         {
-            _items = new WorkItem[32];
-            for(int index = 0; index < _items.Length; index++)
+            _items = new List<WorkItem>(queueSize);
+            for(int index = 0; index < queueSize; index++)
             {
-                _items[index] = new WorkItem();
+                _items.Add(new WorkItem());
             }
         }
 
-        public async void Enqueue(SendOrPostCallback callback, object state)
+        WorkItem GetItem(uint index)
         {
-            while(true)
+            lock(_items)
             {
-                var enqueueIndex = (uint)(_enqueueIndex % _items.Length);
-                var dequeueIndex = (uint)(_dequeueIndex % _items.Length);
+                return _items[(int)(index % _items.Count)];
+            }
+        }
+
+        void EnsureQueueSize()
+        {
+            lock(_items)
+            {
+                var enqueueIndex = (uint)(_enqueueIndex % _items.Count);
+                var dequeueIndex = (uint)(_dequeueIndex % _items.Count);
                 if(enqueueIndex < dequeueIndex)
                 {
-                    enqueueIndex += (uint)_items.Length;
+                    enqueueIndex += (uint)_items.Count;
                 }
 
                 uint count = enqueueIndex - dequeueIndex;
-                if(count < _items.Length -1)
+                if(count < _items.Count -1)
                 {
-                    break;
+                    return;
                 }
-                await Task.Delay(100).ConfigureAwait(false); // the queue is full, this resceduals to a thread pool for a cooldown period
+                // double the size
+                int oldSize = _items.Count;
+                int newSize = _items.Count * 2;
+
+                for(int index = 0; index < newSize/2; index++)
+                {
+                    _items.Add(new WorkItem());
+                }
+                uint oldEnqueueIndex = (uint)(_enqueueIndex % oldSize);
+                _enqueueIndex = oldEnqueueIndex; //resets the index otherwise the mod on the new size will give a differnt index
+                uint oldDequeueIndex = (uint)(_dequeueIndex % oldSize);
+                _dequeueIndex = oldDequeueIndex; //resets the index otherwise the mod on the new size will give a differnt index
+
             }
+        }
+
+        public void Enqueue(SendOrPostCallback callback, object state)
+        {
+            EnsureQueueSize();
             uint index = Interlocked.Increment(ref _enqueueIndex);
-            var item = _items[index % _items.Length];
+            var item = GetItem(index);
             item.Callback = callback;
             item.State = state;
             item.Ready = true;
 
             _workItemAvailable.Set();
         }
+
 
         enum State
         {
@@ -80,7 +105,7 @@ namespace AsyncThreading
             }
 
             uint index = Interlocked.Increment(ref _dequeueIndex);
-            var item = _items[index % _items.Length];
+            var item = GetItem(index);
             while(!item.Ready)
             {
                 //spin until ready

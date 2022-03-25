@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Buffers;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AsyncThreading
 {
     public class WorkItem
     {
-        int _ready = 0;
+        int _ready = 1;
         SendOrPostCallback _callback;
         object _state;
 
@@ -34,7 +32,7 @@ namespace AsyncThreading
             get => _ready == 0;
             set 
             {
-                Interlocked.Exchange(ref _ready, true ? 0 : 1);
+                Interlocked.Exchange(ref _ready, value ? 0 : 1);
             }
         }
     }
@@ -57,6 +55,10 @@ namespace AsyncThreading
                 try
                 {
                     (var callback, var state) = _workItemsQueue.Dequeue();
+                    if(callback == null)
+                    {
+                        Console.WriteLine($"callback {callback}");
+                    }
                     callback(state);
                 }
                 catch(OperationCanceledException)
