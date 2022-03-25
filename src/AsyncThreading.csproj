@@ -5,9 +5,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>0.1.0.1</Version>
-    <AssemblyVersion>0.1.0.1</AssemblyVersion>
-    <PackageVersion>0.1.0.1</PackageVersion>
+    <Version>0.2.0.1</Version>
+    <AssemblyVersion>0.2.0.1</AssemblyVersion>
+    <PackageVersion>0.2.0.1</PackageVersion>
     <Authors>Daniel Hughes</Authors>
     <Copyright>Copyright © Daniel Hughes 2021</Copyright>
     <Summary>AsyncThreading provides an AsyncThread with a syncronization context.</Summary>
